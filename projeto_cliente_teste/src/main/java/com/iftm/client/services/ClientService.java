@@ -17,12 +17,16 @@ import com.iftm.client.entities.Client;
 import com.iftm.client.repositories.ClientRepository;
 import com.iftm.client.services.exceptions.DatabaseException;
 import com.iftm.client.services.exceptions.ResourceNotFoundException;
+import com.iftm.client.services.util.Validador;
 
 @Service
 public class ClientService {
 	
 	@Autowired
-	private ClientRepository repository;
+	private ClientRepository repository;	
+	
+	@Autowired
+	private Validador validador;
 	
 	@Transactional(readOnly = true)
 	public Page<ClientDTO> findAllPaged(PageRequest pageRequest) {
@@ -37,8 +41,26 @@ public class ClientService {
 		return new ClientDTO(entity);
 	}
 	
+	@Transactional(readOnly = true)
+	public Page<ClientDTO> findByIncome(PageRequest pageRequest, Double income) {
+		Page<Client> list = repository.findByIncome(income, pageRequest);		
+		return list.map(x -> new ClientDTO(x));
+	}
+
+	@Transactional(readOnly = true)
+	public Page<ClientDTO> findByIncomeGreaterThan(PageRequest pageRequest, double income) {
+		Page<Client> list = repository.findByIncomeGreaterThan(income, pageRequest);
+		return list.map(x -> new ClientDTO(x));
+	}
+	
+	@Transactional(readOnly = true)
+	public Page<ClientDTO> findByCpfLike(PageRequest pageRequest, String cpf) {
+		Page<Client> list = repository.findByCpfLike(cpf, pageRequest);
+		return list.map(x -> new ClientDTO(x));
+	}
+	
 	@Transactional
-	public ClientDTO insert(ClientDTO dto) {
+	public ClientDTO insert(ClientDTO dto) {		
 		Client entity = dto.toEntity();
 		entity = repository.save(entity);
 		return new ClientDTO(entity);
@@ -57,13 +79,15 @@ public class ClientService {
 	}
 	
 	public void delete(Long id) {
-		try {
+		validador.eValido(id);
+		try {		
+			
 			repository.deleteById(id);
 		} catch (EmptyResultDataAccessException e) {
 			throw new ResourceNotFoundException("Id not found " + id);
 		} catch (DataIntegrityViolationException e) {
 			throw new DatabaseException("Integrity violation");
-		}
+		} 
 	}
 
 	private void updateData(Client entity, ClientDTO dto) {
@@ -73,5 +97,8 @@ public class ClientService {
 		entity.setBirthDate(dto.getBirthDate());
 		entity.setChildren(dto.getChildren());
 	}
+
+	
+
 
 }

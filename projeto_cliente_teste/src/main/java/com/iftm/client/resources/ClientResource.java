@@ -1,6 +1,7 @@
 package com.iftm.client.resources;
 
 import java.net.URI;
+import java.security.InvalidParameterException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -40,18 +41,73 @@ public class ClientResource {
 		return ResponseEntity.ok().body(list);
 	}
 	
-	@GetMapping(value = "/{id}")
+	/*
+	 * Mudança: URI
+	 */
+	@GetMapping(value = "/id/{id}")
 	public ResponseEntity<ClientDTO> findById(@PathVariable Long id) {
 		ClientDTO dto = service.findById(id);
 		return ResponseEntity.ok().body(dto);
 	}
 	
+	/* Mudança
+	 * Novo método: retorna uma lista paginada baseada no salário
+	 */
+	@GetMapping(value = "/income/")
+	public ResponseEntity<Page<ClientDTO>> findByIncome(
+			@RequestParam(value = "income", defaultValue = "0") Double income,
+			@RequestParam(value = "page", defaultValue = "0") Integer page,
+			@RequestParam(value = "linesPerPage", defaultValue = "12") Integer linesPerPage,
+			@RequestParam(value = "direction", defaultValue = "ASC") String direction,
+			@RequestParam(value = "orderBy", defaultValue = "name") String orderBy) 
+	{
+		PageRequest pageRequest = PageRequest.of(page, linesPerPage, Direction.valueOf(direction), orderBy);
+		Page<ClientDTO> list = service.findByIncome(pageRequest, income);
+		return ResponseEntity.ok().body(list);
+	}
+	
+	/* Mudança
+	 * Novo método: retorna uma lista paginada baseada no salário
+	 */
+	@GetMapping(value = "/incomeGreaterThan/")
+	public ResponseEntity<Page<ClientDTO>> findByIncomeGreaterThan(
+			@RequestParam(value = "income", defaultValue = "0") Double income,
+			@RequestParam(value = "page", defaultValue = "0") Integer page,
+			@RequestParam(value = "linesPerPage", defaultValue = "12") Integer linesPerPage,
+			@RequestParam(value = "direction", defaultValue = "ASC") String direction,
+			@RequestParam(value = "orderBy", defaultValue = "name") String orderBy) 
+	{
+		PageRequest pageRequest = PageRequest.of(page, linesPerPage, Direction.valueOf(direction), orderBy);
+		Page<ClientDTO> list = service.findByIncomeGreaterThan(pageRequest, income);
+		return ResponseEntity.ok().body(list);
+	}
+	
+	/* Mudança
+	 * Novo método: retorna uma lista paginada baseada no cpf com like
+	 */
+	@GetMapping(value = "/cpf/")
+	public ResponseEntity<Page<ClientDTO>> findByCPFLike(
+			@RequestParam(value = "cpf", defaultValue = "") String cpf,
+			@RequestParam(value = "page", defaultValue = "0") Integer page,
+			@RequestParam(value = "linesPerPage", defaultValue = "12") Integer linesPerPage,
+			@RequestParam(value = "direction", defaultValue = "ASC") String direction,
+			@RequestParam(value = "orderBy", defaultValue = "name") String orderBy) 
+	{
+		PageRequest pageRequest = PageRequest.of(page, linesPerPage, Direction.valueOf(direction), orderBy);
+		Page<ClientDTO> list = service.findByCpfLike(pageRequest, "%"+cpf+"%");
+		return ResponseEntity.ok().body(list);
+	}
+	
 	@PostMapping
 	public ResponseEntity<ClientDTO> insert(@RequestBody ClientDTO dto) {
-		dto = service.insert(dto);
-		URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
+		try {
+			dto = service.insert(dto);
+			URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}")
 				.buildAndExpand(dto.getId()).toUri();
-		return ResponseEntity.created(uri).body(dto);
+			return ResponseEntity.created(uri).body(dto);
+		}catch(InvalidParameterException e) {
+			return ResponseEntity.unprocessableEntity().build();
+		}
 	}
 	
 	@PutMapping(value = "/{id}")
